@@ -3,14 +3,9 @@
 #
 # client.py - Connect to TCP socket
 #
-# 17May17  Added call to socket.shutdown()
-# 16May17  Updated to use more sophisticated recv behavior
-# 10May16  Everett Lipman
-#
 USAGE="""
-usage: client.py [ipnum] port
+usage: client.py port
 
-       Open TCP connection to ipnum:port and print the output.
        ipnum defaults to 127.0.0.1
 """
 N_ARGUMENTS = (1,2)
@@ -18,6 +13,8 @@ N_ARGUMENTS = (1,2)
 import sys
 import os
 import socket
+import select
+import time
 
 ###############################################################################
 
@@ -70,7 +67,7 @@ def receive_data(thesock, nbytes):
    """
    dstring = b''
    rcount = 0  # number of bytes received
-   thesock.settimeout(5)
+   thesock.settimeout(5.1)
    while rcount < nbytes:
       try:
          somebytes = thesock.recv(min(nbytes - rcount, 2048))
@@ -87,7 +84,21 @@ def receive_data(thesock, nbytes):
 
    return(dstring)
 ###############################################################################
+def reader(thesocket):
+   readers, _, _ = select.select([thesocket,sys.stdin], [], [])
+   for reader in readers:
+      print('looping through readers')
+      if reader is thesocket:
+         print('receiving data!')
+         print(receive_data(thesocket, 2048).decode())
+         return(1)
+      elif reader is sys.stdin:
+         msg = input('Enter some data!')
+         thesocket.send(msg.encode())
+         return(2)
+   return 0
 
+###############################################################################
 if __name__ == '__main__':
    nargs = check_arguments()
 
@@ -102,17 +113,25 @@ if __name__ == '__main__':
    print('Connecting to %s, port %d...\n' % (ipnum, port))
    connected = True
    thesocket = open_connection(ipnum,port)
+   print('Please wait, the server is collecting some data, it should take ~3 seconds')
+   time.sleep(3)
+   print('Server should be complete! Continue!')
+
    while connected:
        #thesocket = open_connection(ipnum, port)
-       indata = receive_data(thesocket, 4096)
-       datastring = indata.decode()
+       message = input('Please enter Weather, Earthquake, or Report: ')
        
-       print()
-       print()
-       print(datastring)
-       print()
-       if(datastring == 'Shutting Down'):
-           connected = False
-           thesocket.shutdown(socket.SHUT_RDWR)
-           thesocket.close()
-   
+       thesocket.send(message.encode())
+       data = thesocket.recv(4096).decode()
+       print('Recieved data ' + data)
+       ans = input('Continue? (y/n) ')
+       #thesocket.send(ans.encode())
+       if ans == 'y':
+          continue
+       else:
+    
+          break
+
+   thesocket.shutdown(socket.SHUT_RDWR)
+   thesocket.close()   
+

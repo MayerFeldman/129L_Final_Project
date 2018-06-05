@@ -15,11 +15,11 @@ page = requests.get('https://www.timeanddate.com/weather/usa/santa-barbara')
 
 #parse the html file using Beautiful Soup
 soup = BeautifulSoup(page.text, 'html.parser')
-#print(soup.prettify())
+print(soup.prettify('latin-1'))
 #To find the temp, I found the class it's located in. Below finds the temp via the tag 'h2' and changes
 #it to a string using the .text extension.
-findTemp = soup.find(class_ = 'h2').text
+#findTemp = soup.find(class_ = 'h2').text
 findOvercast = soup.find('p').text
 print(findOvercast)
-print(findTemp)
+
 
